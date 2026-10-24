@@ -14,6 +14,7 @@ class ActiveCall final : public pj::Call {
     bool finished() const { return disconnected_; }
     void onCallState(pj::OnCallStateParam &parameter) override;
     void onCallMediaState(pj::OnCallMediaStateParam &parameter) override;
+    void onDtmfEvent(pj::OnDtmfEventParam &parameter) override;
 
   private:
     pj::AudioMediaPlayer player_;

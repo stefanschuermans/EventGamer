@@ -56,4 +56,11 @@ void ActiveCall::onCallMediaState(pj::OnCallMediaStateParam &) {
     }
 }
 
+void ActiveCall::onDtmfEvent(pj::OnDtmfEventParam &parameter) {
+    if (!(parameter.flags & PJMEDIA_STREAM_DTMF_IS_UPDATE)) {
+        std::cout << "SIP call " << getId() << ": key " << parameter.digit << " pressed"
+                  << std::endl;
+    }
+}
+
 } // namespace eventgamer

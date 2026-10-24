@@ -81,6 +81,12 @@ If the player cannot be created, the call is ended instead of accepted.
 Concurrent call capacity uses PJSUA2's default limit (normally four calls);
 increasing it will require endpoint configuration and possibly rebuilding PJPROJECT.
 
+DTMF events print `SIP call <id>: key 9 pressed`. RTP telephone events
+(RFC 2833/4733) log the start of each digit; intermediate duration updates and
+release notifications are ignored. SIP INFO logs a press when its completed digit
+message arrives. In-band audio tone detection is not implemented. These events describe received DTMF;
+phones or PBXs may generate fixed-duration tones instead of tracking a held key.
+
 On Linux and macOS, SIGTERM, SIGINT, SIGPIPE, or SIGQUIT requests shutdown.
 On Windows, Ctrl+C, Ctrl+Break, console close/logoff/shutdown notifications, and
 C runtime SIGINT/SIGTERM request shutdown. Windows can impose a deadline or omit
