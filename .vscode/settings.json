@@ -1,0 +1,18 @@
+{
+    "clangd.arguments": [
+        "--background-index"
+    ],
+    "cmake.sourceDirectory": "${workspaceFolder}/EventGamer",
+    "cmake.buildDirectory": "${workspaceFolder}/EventGamer/build",
+    "cmake.generator": "Ninja",
+    "files.associations": {
+        "*.h": "cpp"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+        "editor.formatOnSave": true
+    },
+    "editor.rulers": [
+        80
+    ],
+}
