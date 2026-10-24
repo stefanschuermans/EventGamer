@@ -36,6 +36,8 @@ void ActiveCall::processAudioEvents() {
     }
     player_->notified = true;
     const auto audio = player_->audio;
+    std::cout << "SIP call " << getId() << ": audio playback finished: "
+              << audio_config_.paths.at(audio).filename().u8string() << std::endl;
     if (auto current_logic = logic) {
         // EOF only sets an atomic flag on the media thread. Here the logic may
         // safely replace/destroy the player or hang up on the main thread.
