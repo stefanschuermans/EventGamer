@@ -39,7 +39,7 @@ void ActiveCall::processAudioEvents() {
     if (auto current_logic = logic) {
         // EOF only sets an atomic flag on the media thread. Here the logic may
         // safely replace/destroy the player or hang up on the main thread.
-        current_logic->audioFinished(*this, audio);
+        current_logic->audioFinished(audio);
     }
 }
 
@@ -55,7 +55,7 @@ void ActiveCall::hangUp() {
 
 void ActiveCall::setLogic(std::shared_ptr<Logic> new_logic) {
     if (auto previous_logic = logic) {
-        previous_logic->clientDetaching(*this);
+        previous_logic->clientDetaching();
     }
     logic = std::move(new_logic);
     if (auto current_logic = logic) {
@@ -65,7 +65,7 @@ void ActiveCall::setLogic(std::shared_ptr<Logic> new_logic) {
 
 void ActiveCall::setQueuePosition(unsigned int position) {
     if (auto current_logic = logic) {
-        current_logic->setQueuePosition(*this, position);
+        current_logic->setQueuePosition(position);
     }
 }
 
@@ -123,7 +123,7 @@ void ActiveCall::onDtmfEvent(pj::OnDtmfEventParam &parameter) {
         std::cout << "SIP call " << getId() << ": key " << parameter.digit << " pressed"
                   << std::endl;
         if (auto current_logic = logic; current_logic && !parameter.digit.empty()) {
-            current_logic->keyPressed(*this, parameter.digit.front());
+            current_logic->keyPressed(parameter.digit.front());
         }
     }
 }

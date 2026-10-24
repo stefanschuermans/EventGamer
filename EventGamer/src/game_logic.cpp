@@ -7,7 +7,8 @@
 
 namespace eventgamer {
 
-GameLogic::GameLogic(GameProtocol &protocol) : protocol_(protocol) {
+GameLogic::GameLogic(GameProtocol &protocol)
+    : protocol_(protocol), client_(nullptr), game_over_(false) {
     protocol_.setHandler([this](const OSCMessage &message) { messageReceived(message); });
 }
 
@@ -22,7 +23,9 @@ void GameLogic::messageReceived(const OSCMessage &message) {
     }
 }
 
-void GameLogic::keyPressed(Client &, char key) {
+void GameLogic::keyPressed(char key) {
+    if (game_over_)
+        return;
     switch (key) {
     case '2':
         sendUp();
@@ -40,15 +43,22 @@ void GameLogic::keyPressed(Client &, char key) {
 }
 
 void GameLogic::clientAttached(Client &client) {
-    client.playAudio(AudioKey::game_starts);
+    client_ = &client;
+    client_->playAudio(AudioKey::game_starts);
     sendRestart();
 }
 
-void GameLogic::clientDetaching(Client &) { sendStop(); }
+void GameLogic::clientDetaching() {
+    sendStop();
+    client_ = nullptr;
+}
 
-void GameLogic::audioFinished(Client &, AudioKey) {}
+void GameLogic::audioFinished(AudioKey) {
+    if (game_over_ && client_)
+        client_->hangUp();
+}
 
-void GameLogic::setQueuePosition(Client &, unsigned int) {}
+void GameLogic::setQueuePosition(unsigned int) {}
 
 void GameLogic::dumpMessage(const OSCMessage &message, std::ostream &stream) {
     stream << message.address;
@@ -70,7 +80,11 @@ void GameLogic::dumpMessage(const OSCMessage &message, std::ostream &stream) {
     stream << '\n';
 }
 
-void GameLogic::onGameOver() {}
+void GameLogic::onGameOver() {
+    game_over_ = true;
+    if (client_)
+        client_->playAudio(AudioKey::game_over);
+}
 
 void GameLogic::sendMessage(const OSCMessage &message) {
     std::cout << "Sending game OSC message: ";

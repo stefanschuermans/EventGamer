@@ -2,16 +2,19 @@
 
 namespace eventgamer {
 
-void QueueLogic::keyPressed(Client &, char) {}
+QueueLogic::QueueLogic() : client_(nullptr) {}
+
+void QueueLogic::keyPressed(char) {}
 
 void QueueLogic::clientAttached(Client &client) {
-    client.playAudio(AudioKey::in_queue);
+    client_ = &client;
+    client_->playAudio(AudioKey::in_queue);
 }
 
-void QueueLogic::clientDetaching(Client &) {}
+void QueueLogic::clientDetaching() { client_ = nullptr; }
 
-void QueueLogic::audioFinished(Client &, AudioKey) {}
+void QueueLogic::audioFinished(AudioKey) {}
 
-void QueueLogic::setQueuePosition(Client &, unsigned int) {}
+void QueueLogic::setQueuePosition(unsigned int) {}
 
 } // namespace eventgamer

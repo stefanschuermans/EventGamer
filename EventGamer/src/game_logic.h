@@ -16,11 +16,11 @@ class GameLogic final : public Logic {
     GameLogic(const GameLogic &) = delete;
     GameLogic &operator=(const GameLogic &) = delete;
     void messageReceived(const OSCMessage &message);
-    void keyPressed(Client &client, char key) override;
+    void keyPressed(char key) override;
     void clientAttached(Client &client) override;
-    void clientDetaching(Client &client) override;
-    void audioFinished(Client &client, AudioKey audio) override;
-    void setQueuePosition(Client &client, unsigned int position) override;
+    void clientDetaching() override;
+    void audioFinished(AudioKey audio) override;
+    void setQueuePosition(unsigned int position) override;
 
   private:
     void dumpMessage(const OSCMessage &message, std::ostream &stream);
@@ -34,6 +34,9 @@ class GameLogic final : public Logic {
     void sendStop();
 
     GameProtocol &protocol_;
+    Client *client_;
+
+    bool game_over_;
 };
 
 } // namespace eventgamer

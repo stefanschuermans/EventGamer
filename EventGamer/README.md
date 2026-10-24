@@ -102,7 +102,7 @@ clang-format engine and the root `.clang-format` style. Install `clangd` on your
 PATH (on Debian: `sudo apt install clangd`). Configure CMake once to generate
 `EventGamer/build/compile_commands.json`, which clangd discovers automatically.
 
-When a sound finishes, `Logic::audioFinished(Client&, AudioKey)` is called once
+When a sound finishes, `Logic::audioFinished(AudioKey)` is called once
 on the main thread. The media-thread EOF callback only sets an atomic flag, so
 logic can safely start a new sound or hang up. Replacing a sound interrupts it
 without a completion notification. QueueLogic and GameLogic currently leave

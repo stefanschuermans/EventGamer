@@ -6,11 +6,17 @@ namespace eventgamer {
 
 class QueueLogic final : public Logic {
   public:
-    void keyPressed(Client &client, char key) override;
+    explicit QueueLogic();
+    QueueLogic(const QueueLogic &) = delete;
+    QueueLogic &operator=(const QueueLogic &) = delete;
+    void keyPressed(char key) override;
     void clientAttached(Client &client) override;
-    void clientDetaching(Client &client) override;
-    void audioFinished(Client &client, AudioKey audio) override;
-    void setQueuePosition(Client &client, unsigned int position) override;
+    void clientDetaching() override;
+    void audioFinished(AudioKey audio) override;
+    void setQueuePosition(unsigned int position) override;
+
+  private:
+    Client *client_;
 };
 
 } // namespace eventgamer
