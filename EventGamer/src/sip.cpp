@@ -1,5 +1,7 @@
 #include "sip.h"
 #include "call.h"
+#include "game_logic.h"
+#include "queue_logic.h"
 #include "shutdown.h"
 
 #include <pjsua2.hpp>
@@ -8,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace eventgamer {
@@ -15,7 +18,8 @@ namespace {
 
 class SipAccount final : public pj::Account {
   public:
-    explicit SipAccount(const std::filesystem::path &queue_audio) : queue_audio_(queue_audio) {}
+    SipAccount(const AudioConfig &audio, std::shared_ptr<GameLogic> game_logic)
+        : audio_config_(audio), game_logic_(std::move(game_logic)) {}
 
     ~SipAccount() override {
         // Call destructors detach callbacks and hang up any remaining calls while
@@ -25,19 +29,25 @@ class SipAccount final : public pj::Account {
     }
 
     void remove_finished_calls() {
+        const auto previous_size = calls_.size();
         calls_.erase(std::remove_if(calls_.begin(), calls_.end(),
                                     [](const auto &call) { return call->finished(); }),
                      calls_.end());
+        if (calls_.size() != previous_size) {
+            update_queue_positions();
+        }
     }
 
     void onIncomingCall(pj::OnIncomingCallParam &parameter) override {
         std::cout << "Incoming SIP call " << parameter.callId << std::endl;
         try {
-            auto call = std::make_unique<ActiveCall>(*this, parameter.callId, queue_audio_);
+            auto call = std::make_unique<ActiveCall>(*this, parameter.callId, audio_config_);
+            call->setLogic(std::make_shared<QueueLogic>());
             auto &active = *call;
             // Incoming callbacks and answers run serially on main. Append before
             // answer(), which may itself invoke call callbacks synchronously.
             calls_.push_back(std::move(call));
+            update_queue_positions();
             active.accept();
         } catch (const pj::Error &error) {
             std::cerr << "Cannot accept incoming call: " << error.info() << std::endl;
@@ -45,6 +55,12 @@ class SipAccount final : public pj::Account {
         } catch (const std::exception &error) {
             std::cerr << "Cannot accept incoming call: " << error.what() << std::endl;
             end_failed_call(parameter.callId);
+        }
+    }
+
+    void process_audio_events() {
+        for (const auto &call : calls_) {
+            call->processAudioEvents();
         }
     }
 
@@ -59,6 +75,15 @@ class SipAccount final : public pj::Account {
     }
 
   private:
+    void update_queue_positions() {
+        if (!calls_.empty() && calls_.front()->logic != game_logic_) {
+            calls_.front()->setLogic(game_logic_);
+        }
+        for (std::size_t index = 0; index < calls_.size(); ++index) {
+            calls_[index]->setQueuePosition(static_cast<unsigned int>(index));
+        }
+    }
+
     void end_failed_call(int call_id) {
         for (const auto &call : calls_) {
             if (call->getId() == call_id && !call->finished()) {
@@ -74,7 +99,8 @@ class SipAccount final : public pj::Account {
         }
     }
 
-    std::filesystem::path queue_audio_;
+    AudioConfig audio_config_;
+    std::shared_ptr<GameLogic> game_logic_;
     // Oldest accepted call first; erase preserves the order of remaining calls.
     std::vector<std::unique_ptr<ActiveCall>> calls_;
 };
@@ -138,7 +164,8 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, bool sip_trace) 
     endpoint.libStart();
     endpoint.audDevManager().setNullDev();
 
-    SipAccount account(audio.paths.at(AudioKey::in_queue));
+    auto game_logic = std::make_shared<GameLogic>();
+    SipAccount account(audio, game_logic);
     pj::AccountConfig account_config;
     account_config.idUri = "sip:" + config.username + "@" + config.server;
     account_config.regConfig.registrarUri = "sip:" + config.server;
@@ -157,6 +184,7 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, bool sip_trace) 
     while (!shutdown_requested()) {
         const int result = endpoint.libHandleEvents(100);
         account.remove_finished_calls();
+        account.process_audio_events();
         if (result < 0 && !shutdown_requested()) {
             throw std::runtime_error("SIP event processing failed: " + std::to_string(result));
         }

@@ -43,6 +43,9 @@ add_executable(EventGamer
     src/main.cpp src/config.cpp src/config.h
     src/sip.cpp src/sip.h src/shutdown.cpp src/shutdown.h
     src/call.cpp src/call.h
+    src/client.h src/logic.h
+    src/queue_logic.cpp src/queue_logic.h
+    src/game_logic.cpp src/game_logic.h
 )
 target_compile_features(EventGamer PRIVATE cxx_std_17)
 set_target_properties(EventGamer PROPERTIES CXX_EXTENSIONS OFF)

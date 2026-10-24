@@ -1,7 +1,7 @@
 # EventGamer
 
 C++17 application with TOML configuration parsing and PJSUA2 SIP registration.
-Incoming calls are answered automatically and hear looping queue audio.
+Incoming calls are answered automatically. Audio plays only when explicitly requested.
 Game control and OSC communication are not implemented yet.
 
 Build from the repository root with CMake 3.20+, Ninja, Git, and a C++17 compiler:
@@ -72,12 +72,11 @@ incoming/outgoing SIP messages, including addressing and authentication headers;
 redact those headers before sharing a trace. Normal logging reports the bound
 and advertised SIP address, incoming calls, rejected calls, and queue playback.
 
-Each incoming call is represented by an `ActiveCall` with its own WAV player.
-Calls are kept in a vector in acceptance order, oldest first. When audio media
-becomes active, the player sends the configured `audio.in_queue` file in a loop.
+Each incoming call is represented by an `ActiveCall` with its own WAV player. All sounds use non-looping playback.
+Calls are kept in a vector in acceptance order, oldest first. No player is created on acceptance. `Client::playAudio()` selects a configured
+sound and starts it when audio media is active.
 Disconnected calls are removed by the main loop without changing the order of
 remaining calls. Queue WAV files must be supported by PJSUA2 (16-bit PCM mono).
-If the player cannot be created, the call is ended instead of accepted.
 Concurrent call capacity uses PJSUA2's default limit (normally four calls);
 increasing it will require endpoint configuration and possibly rebuilding PJPROJECT.
 
@@ -101,3 +100,9 @@ CMake Tools extensions. The workspace enables C++ format-on-save using clangd's
 clang-format engine and the root `.clang-format` style. Install `clangd` on your
 PATH (on Debian: `sudo apt install clangd`). Configure CMake once to generate
 `EventGamer/build/compile_commands.json`, which clangd discovers automatically.
+
+When a sound finishes, `Logic::audioFinished(Client&, AudioKey)` is called once
+on the main thread. The media-thread EOF callback only sets an atomic flag, so
+logic can safely start a new sound or hang up. Replacing a sound interrupts it
+without a completion notification. QueueLogic and GameLogic currently leave
+this callback empty.
