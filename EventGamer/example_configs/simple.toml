@@ -6,9 +6,9 @@ password_file = "sipphonetest_password.txt"
 
 [audio]
 # Relative paths are resolved against this configuration file's directory.
-welcome = "audio/welcome.wav"
-game_starts = "audio/game-starts.wav"
-game_over = "audio/game-over.wav"
+in_queue = "audio/in_queue.wav"
+game_starts = "audio/game_starts.wav"
+game_over = "audio/game_over.wav"
 
 [osc]
 address_family = "ipv4"

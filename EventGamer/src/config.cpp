@@ -12,7 +12,7 @@ namespace eventgamer {
 namespace {
 
 const std::map<AudioKey, std::string_view> audio_key_names{
-    {AudioKey::welcome, "welcome"},
+    {AudioKey::in_queue, "in_queue"},
     {AudioKey::game_starts, "game_starts"},
     {AudioKey::game_over, "game_over"},
 };

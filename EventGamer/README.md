@@ -1,7 +1,8 @@
 # EventGamer
 
 C++17 application with TOML configuration parsing and PJSUA2 SIP registration.
-Audio playback, call handling, and OSC communication are not implemented yet.
+Incoming calls are answered automatically and hear looping queue audio.
+Game control and OSC communication are not implemented yet.
 
 Build from the repository root with CMake 3.20+, Ninja, Git, and a C++17 compiler:
 
@@ -65,6 +66,20 @@ after 30 seconds (initial transport-failure retry after 5 seconds). Registration
 status is printed; rejected credentials must be fixed in the config and the app
 restarted. The main thread polls SIP events at intervals up to 100 ms.
 No physical sound device is required.
+
+For SIP diagnostics, run `EventGamer <config.toml> --sip-trace`. This prints
+incoming/outgoing SIP messages, including addressing and authentication headers;
+redact those headers before sharing a trace. Normal logging reports the bound
+and advertised SIP address, incoming calls, rejected calls, and queue playback.
+
+Each incoming call is represented by an `ActiveCall` with its own WAV player.
+Calls are kept in a vector in acceptance order, oldest first. When audio media
+becomes active, the player sends the configured `audio.in_queue` file in a loop.
+Disconnected calls are removed by the main loop without changing the order of
+remaining calls. Queue WAV files must be supported by PJSUA2 (16-bit PCM mono).
+If the player cannot be created, the call is ended instead of accepted.
+Concurrent call capacity uses PJSUA2's default limit (normally four calls);
+increasing it will require endpoint configuration and possibly rebuilding PJPROJECT.
 
 On Linux and macOS, SIGTERM, SIGINT, SIGPIPE, or SIGQUIT requests shutdown.
 On Windows, Ctrl+C, Ctrl+Break, console close/logoff/shutdown notifications, and

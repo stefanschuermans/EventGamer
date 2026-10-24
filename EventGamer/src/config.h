@@ -15,7 +15,7 @@ struct SipConfig {
     std::string password; // Loaded from password_file during configuration parsing.
 };
 
-enum class AudioKey { welcome, game_starts, game_over };
+enum class AudioKey { in_queue, game_starts, game_over };
 
 struct AudioConfig {
     std::map<AudioKey, std::filesystem::path> paths;

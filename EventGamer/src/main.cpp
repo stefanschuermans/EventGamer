@@ -11,18 +11,18 @@
 
 int main(int argc, char *argv[]) {
     if (argc == 2 && std::string_view{argv[1]} == "--help") {
-        std::cout << "Usage: EventGamer <config.toml>\n";
+        std::cout << "Usage: EventGamer <config.toml> [--sip-trace]\n";
         return 0;
     }
-    if (argc != 2) {
-        std::cerr << "Usage: EventGamer <config.toml>\n";
+    if ((argc != 2 && argc != 3) || (argc == 3 && std::string_view{argv[2]} != "--sip-trace")) {
+        std::cerr << "Usage: EventGamer <config.toml> [--sip-trace]\n";
         return 1;
     }
     try {
         eventgamer::install_shutdown_handlers();
         const auto config = eventgamer::load_config(std::filesystem::u8path(argv[1]));
         std::cout << "Configuration loaded successfully.\n";
-        eventgamer::run_sip(config.sip);
+        eventgamer::run_sip(config.sip, config.audio, argc == 3);
         return 0;
     } catch (const toml::parse_error &error) {
         std::cerr << "Configuration parse error: " << error << '\n';
