@@ -1,6 +1,8 @@
 #include "sip.h"
 #include "call.h"
 #include "game_logic.h"
+#include "game_protocol.h"
+#include "osc_transport.h"
 #include "queue_logic.h"
 #include "shutdown.h"
 
@@ -132,7 +134,8 @@ class SipEndpoint final {
 
 } // namespace
 
-void run_sip(const SipConfig &config, const AudioConfig &audio, bool sip_trace) {
+void run_sip(const SipConfig &config, const AudioConfig &audio, const OscConfig &osc,
+             bool sip_trace) {
     // Keep URI construction unambiguous until separate domain/proxy settings exist.
     if (config.server.find_first_of(" \t\r\n@;/<>?#") != std::string::npos ||
         config.server.find("://") != std::string::npos || config.server.rfind("sip:", 0) == 0 ||
@@ -164,7 +167,9 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, bool sip_trace) 
     endpoint.libStart();
     endpoint.audDevManager().setNullDev();
 
-    auto game_logic = std::make_shared<GameLogic>();
+    OSCTransport osc_transport(osc);
+    GameProtocol game_protocol(osc_transport);
+    auto game_logic = std::make_shared<GameLogic>(game_protocol);
     SipAccount account(audio, game_logic);
     pj::AccountConfig account_config;
     account_config.idUri = "sip:" + config.username + "@" + config.server;
@@ -182,7 +187,8 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, bool sip_trace) 
     std::cout << "SIP started; waiting for registration and shutdown events." << std::endl;
 
     while (!shutdown_requested()) {
-        const int result = endpoint.libHandleEvents(100);
+        const int result = endpoint.libHandleEvents(10);
+        game_protocol.poll();
         account.remove_finished_calls();
         account.process_audio_events();
         if (result < 0 && !shutdown_requested()) {

@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
         eventgamer::install_shutdown_handlers();
         const auto config = eventgamer::load_config(std::filesystem::u8path(argv[1]));
         std::cout << "Configuration loaded successfully.\n";
-        eventgamer::run_sip(config.sip, config.audio, argc == 3);
+        eventgamer::run_sip(config.sip, config.audio, config.osc, argc == 3);
         return 0;
     } catch (const toml::parse_error &error) {
         std::cerr << "Configuration parse error: " << error << '\n';

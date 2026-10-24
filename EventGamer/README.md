@@ -2,7 +2,8 @@
 
 C++17 application with TOML configuration parsing and PJSUA2 SIP registration.
 Incoming calls are answered automatically. Audio plays only when explicitly requested.
-Game control and OSC communication are not implemented yet.
+OSC UDP transport and typed message dispatch are implemented; game command addresses
+and MadMapper-specific behavior remain to be defined.
 
 Build from the repository root with CMake 3.20+, Ninja, Git, and a C++17 compiler:
 
@@ -64,7 +65,7 @@ family setting does not control SIP.
 PJSUA2 refreshes registration automatically and retries eligible transient failures
 after 30 seconds (initial transport-failure retry after 5 seconds). Registration
 status is printed; rejected credentials must be fixed in the config and the app
-restarted. The main thread polls SIP events at intervals up to 100 ms.
+restarted. The main thread polls SIP events at intervals up to 10 ms.
 No physical sound device is required.
 
 For SIP diagnostics, run `EventGamer <config.toml> --sip-trace`. This prints
@@ -106,3 +107,42 @@ on the main thread. The media-thread EOF callback only sets an atomic flag, so
 logic can safely start a new sound or hang up. Replacing a sound interrupts it
 without a completion notification. QueueLogic and GameLogic currently leave
 this callback empty.
+
+OSC uses standalone Asio for UDP and oscpack for message encoding/decoding.
+CMake prefers installed copies; on Debian use
+`sudo apt install libasio-dev liboscpack-dev`. Otherwise CMake downloads Asio
+1.30.2 and a pinned oscpack revision under the ignored build directory.
+Offline source overrides are `FETCHCONTENT_SOURCE_DIR_ASIO` and
+`FETCHCONTENT_SOURCE_DIR_OSCPACK`.
+
+The main loop owns `OSCTransport`, then `GameProtocol`, then the shared
+`GameLogic`. Each dependent object stores a reference to its dependency, which
+outlives it. OSC is polled on the main thread, processing up to 64 datagrams per
+iteration. Hostnames are resolved at startup; `auto` selects one family common
+to the local and remote addresses, rather than opening both IPv4 and IPv6 sockets.
+The bound socket is also used for outgoing messages.
+
+`GameProtocol::sendMessage()` accepts an OSC address and typed arguments
+(int32, float, string, bool, int64, double). Incoming messages are decoded into
+`OSCMessage` and dispatched to an exact address handler registered with
+`setHandler()`. An empty handler removes a registration. Unhandled addresses are
+logged. For example (illustrative addresses, not a defined game protocol):
+
+```cpp
+protocol.setHandler("/game/status", [](const OSCMessage& message) {
+    // Validate argument types and interpret the status here.
+});
+protocol.sendMessage({"/game/key", {std::string{"9"}}});
+```
+
+Immediate bundles are supported, including nesting up to 16 levels. Scheduled
+bundles and unsupported argument types are rejected. Malformed packets are
+logged and do not stop subsequent reception. UDP send errors propagate to the
+caller; delivery, acknowledgment, and retransmission are not provided.
+GameLogic holds the GameProtocol reference, ready for command/status behavior.
+
+Run the OSC loopback tests with:
+
+```sh
+ctest --test-dir EventGamer/build --output-on-failure
+```

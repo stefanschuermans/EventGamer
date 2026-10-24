@@ -2,15 +2,38 @@
 
 #include "logic.h"
 
+#include <iosfwd>
+
 namespace eventgamer {
+
+class GameProtocol;
+struct OSCMessage;
 
 class GameLogic final : public Logic {
   public:
+    explicit GameLogic(GameProtocol &protocol);
+    ~GameLogic() override;
+    GameLogic(const GameLogic &) = delete;
+    GameLogic &operator=(const GameLogic &) = delete;
+    void messageReceived(const OSCMessage &message);
     void keyPressed(Client &client, char key) override;
     void clientAttached(Client &client) override;
     void clientDetaching(Client &client) override;
     void audioFinished(Client &client, AudioKey audio) override;
     void setQueuePosition(Client &client, unsigned int position) override;
+
+  private:
+    void dumpMessage(const OSCMessage &message, std::ostream &stream);
+    void onGameOver();
+    void sendMessage(const OSCMessage &message);
+    void sendUp();
+    void sendDown();
+    void sendLeft();
+    void sendRight();
+    void sendRestart();
+    void sendStop();
+
+    GameProtocol &protocol_;
 };
 
 } // namespace eventgamer
