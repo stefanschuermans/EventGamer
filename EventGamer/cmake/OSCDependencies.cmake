@@ -48,6 +48,7 @@ else()
     FetchContent_Declare(oscpack
         GIT_REPOSITORY https://github.com/RossBencina/oscpack.git
         GIT_TAG 3e7e3a102e316d75fe176885a6dd08f216f2eac0
+        PATCH_COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_LIST_DIR}/PatchOscpack.cmake"
         SOURCE_SUBDIR eventgamer-no-build
     )
     FetchContent_MakeAvailable(oscpack)
