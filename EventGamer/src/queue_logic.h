@@ -42,6 +42,8 @@ class QueueLogic final : public Logic {
   private:
     TimeoutManager &timeout_manager_;
     Client *client_;
+    unsigned int timeout_cnt_;
+    unsigned int queue_position_;
 };
 
 } // namespace eventgamer

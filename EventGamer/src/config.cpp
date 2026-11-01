@@ -33,14 +33,14 @@ namespace {
 
 const std::map<AudioKey, std::string_view> audio_key_names{
     {AudioKey::in_queue, "in_queue"},
+    {AudioKey::queue_press_key, "queue_press_key"},
     {AudioKey::game_starts, "game_starts"},
     {AudioKey::game_over, "game_over"},
 };
 
-void check_keys(const toml::table& table,
-                std::initializer_list<std::string_view> allowed,
+void check_keys(const toml::table &table, std::initializer_list<std::string_view> allowed,
                 std::string_view section) {
-    for (const auto& [key, value] : table) {
+    for (const auto &[key, value] : table) {
         (void)value;
         bool known = false;
         for (const auto candidate : allowed) {
@@ -50,22 +50,23 @@ void check_keys(const toml::table& table,
             }
         }
         if (!known) {
-            throw std::runtime_error("Unknown configuration key: " +
+            throw std::runtime_error(
+                "Unknown configuration key: " +
                 (section.empty() ? std::string{} : std::string{section} + ".") +
                 std::string{key.str()});
         }
     }
 }
 
-const toml::table& require_section(const toml::table& root, std::string_view name) {
-    const auto* section = root[name].as_table();
+const toml::table &require_section(const toml::table &root, std::string_view name) {
+    const auto *section = root[name].as_table();
     if (!section) {
         throw std::runtime_error("Required configuration section: " + std::string{name});
     }
     return *section;
 }
 
-std::string require_string(const toml::table& table, std::string_view section,
+std::string require_string(const toml::table &table, std::string_view section,
                            std::string_view key) {
     const auto value = table[key].value<std::string>();
     if (!value || value->empty()) {
@@ -75,8 +76,8 @@ std::string require_string(const toml::table& table, std::string_view section,
     return *value;
 }
 
-std::uint16_t require_port(const toml::table& table, std::string_view key) {
-    const auto* integer = table[key].as_integer();
+std::uint16_t require_port(const toml::table &table, std::string_view key) {
+    const auto *integer = table[key].as_integer();
     if (!integer || integer->get() < 1 || integer->get() > 65535) {
         throw std::runtime_error("osc." + std::string{key} +
                                  " must be an integer between 1 and 65535");
@@ -84,7 +85,7 @@ std::uint16_t require_port(const toml::table& table, std::string_view key) {
     return static_cast<std::uint16_t>(integer->get());
 }
 
-std::string read_password(const std::filesystem::path& base, const toml::table& sip) {
+std::string read_password(const std::filesystem::path &base, const toml::table &sip) {
     const auto relative = std::filesystem::u8path(require_string(sip, "sip", "password_file"));
     if (relative.has_root_path()) {
         throw std::runtime_error("sip.password_file must be a relative path");
@@ -116,22 +117,24 @@ std::string read_password(const std::filesystem::path& base, const toml::table& 
 
 } // namespace
 
-Config load_config(const std::filesystem::path& filename) {
+Config load_config(const std::filesystem::path &filename) {
     const auto root = toml::parse_file(filename.u8string());
     check_keys(root, {"sip", "audio", "osc"}, "");
-    const auto& sip = require_section(root, "sip");
-    const auto& audio = require_section(root, "audio");
-    const auto& osc = require_section(root, "osc");
+    const auto &sip = require_section(root, "sip");
+    const auto &audio = require_section(root, "audio");
+    const auto &osc = require_section(root, "osc");
     check_keys(sip, {"server", "username", "password_file"}, "sip");
-    for (const auto& [key, value] : audio) {
+    for (const auto &[key, value] : audio) {
         (void)value;
-        const auto known = std::any_of(audio_key_names.begin(), audio_key_names.end(),
-            [&](const auto& entry) { return entry.second == key.str(); });
+        const auto known =
+            std::any_of(audio_key_names.begin(), audio_key_names.end(),
+                        [&](const auto &entry) { return entry.second == key.str(); });
         if (!known) {
             throw std::runtime_error("Unknown configuration key: audio." + std::string{key.str()});
         }
     }
-    check_keys(osc, {"address_family", "bind_host", "bind_port", "remote_host", "remote_port"}, "osc");
+    check_keys(osc, {"address_family", "bind_host", "bind_port", "remote_host", "remote_port"},
+               "osc");
 
     const auto family_name = require_string(osc, "osc", "address_family");
     AddressFamily family;
@@ -147,20 +150,17 @@ Config load_config(const std::filesystem::path& filename) {
 
     const auto base = std::filesystem::absolute(filename).parent_path();
     AudioConfig audio_config;
-    for (const auto& [key, name] : audio_key_names) {
+    for (const auto &[key, name] : audio_key_names) {
         const auto path = std::filesystem::u8path(require_string(audio, "audio", name));
         audio_config.paths.emplace(key,
-            (path.is_absolute() ? path : base / path).lexically_normal());
+                                   (path.is_absolute() ? path : base / path).lexically_normal());
     }
 
-    return {
-        {require_string(sip, "sip", "server"),
-         require_string(sip, "sip", "username"),
-         read_password(base, sip)},
-        audio_config,
-        {family, require_string(osc, "osc", "bind_host"), require_port(osc, "bind_port"),
-         require_string(osc, "osc", "remote_host"), require_port(osc, "remote_port")}
-    };
+    return {{require_string(sip, "sip", "server"), require_string(sip, "sip", "username"),
+             read_password(base, sip)},
+            audio_config,
+            {family, require_string(osc, "osc", "bind_host"), require_port(osc, "bind_port"),
+             require_string(osc, "osc", "remote_host"), require_port(osc, "remote_port")}};
 }
 
 } // namespace eventgamer
