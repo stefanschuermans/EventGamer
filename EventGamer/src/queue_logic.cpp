@@ -19,9 +19,11 @@
  */
 
 #include "queue_logic.h"
+#include "config.h"
 #include "timeout_manager.h"
 
 #include <iostream>
+#include <vector>
 
 namespace eventgamer {
 
@@ -31,22 +33,21 @@ static const unsigned int max_idle_seconds = 20;
 static const unsigned int max_idle_repeat = 3;
 
 QueueLogic::QueueLogic(TimeoutManager &timeout_manager)
-    : timeout_manager_(timeout_manager), client_(nullptr), timeout_cnt_(0), queue_position_(0) {}
+    : timeout_manager_(timeout_manager), client_(nullptr), timeout_cnt_(0), queue_position_(0),
+      play_position_reverse_() {}
 
 QueueLogic::~QueueLogic() { timeout_manager_.cancelTimeout(*this); }
 
 void QueueLogic::keyPressed(char) {
-    if (client_)
-        client_->playAudio(AudioKey::in_queue);
     timeout_cnt_ = 0;
+    startPlayPosition();
 }
 
 void QueueLogic::clientAttached(Client &client) {
     client_ = &client;
     std::cout << "queue " << queue_position_ << " added" << std::endl;
-    timeout_manager_.cancelTimeout(*this);
-    client_->playAudio(AudioKey::in_queue);
     timeout_cnt_ = 0;
+    startPlayPosition();
 }
 
 void QueueLogic::clientDetaching() {
@@ -57,12 +58,30 @@ void QueueLogic::clientDetaching() {
 }
 
 void QueueLogic::audioFinished(AudioKey) {
-    timeout_manager_.registerTimeout(*this, max_idle_seconds);
+    // no more digits of position to play -> start idle phase
+    if (play_position_reverse_.empty()) {
+        timeout_manager_.registerTimeout(*this, max_idle_seconds);
+        return;
+    }
+
+    // play next digit
+    unsigned char digit = play_position_reverse_.back();
+    play_position_reverse_.pop_back();
+    static const AudioKey digit_audio_keys[] = {
+        AudioKey::digit_0, AudioKey::digit_1, AudioKey::digit_2, AudioKey::digit_3,
+        AudioKey::digit_4, AudioKey::digit_5, AudioKey::digit_6, AudioKey::digit_7,
+        AudioKey::digit_8, AudioKey::digit_9,
+    };
+    static const unsigned int digit_audio_key_cnt =
+        sizeof(digit_audio_keys) / sizeof(digit_audio_keys[0]);
+    if (client_)
+        client_->playAudio(digit_audio_keys[digit % digit_audio_key_cnt]);
 }
 
 void QueueLogic::setQueuePosition(unsigned int position) {
     std::cout << "queue " << queue_position_ << " update to position " << position << std::endl;
     queue_position_ = position;
+    startPlayPosition();
 }
 
 void QueueLogic::timeoutExpired() {
@@ -75,6 +94,22 @@ void QueueLogic::timeoutExpired() {
     }
     if (client_)
         client_->playAudio(AudioKey::queue_press_key);
+    play_position_reverse_.clear(); // don't play position after "press key"
+}
+
+void QueueLogic::startPlayPosition() {
+    timeout_manager_.cancelTimeout(*this);
+    if (client_)
+        client_->playAudio(AudioKey::in_queue);
+
+    // split current queue position into digits still to play, stored in
+    // reverse, never report position 0 to user
+    unsigned int position = queue_position_ == 0 ? 1 : queue_position_;
+    play_position_reverse_.clear();
+    while (position != 0) {
+        play_position_reverse_.push_back(position % 10);
+        position /= 10;
+    }
 }
 
 } // namespace eventgamer
