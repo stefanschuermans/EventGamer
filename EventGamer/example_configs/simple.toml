@@ -7,6 +7,7 @@ password_file = "sipphonetest_password.txt"
 [audio]
 # Relative paths are resolved against this configuration file's directory.
 in_queue = "audio/in_queue.wav"
+queue_press_key = "audio/queue_press_key.wav"
 game_starts = "audio/game_starts.wav"
 game_over = "audio/game_over.wav"
 

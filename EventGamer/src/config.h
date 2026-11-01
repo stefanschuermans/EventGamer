@@ -35,7 +35,7 @@ struct SipConfig {
     std::string password; // Loaded from password_file during configuration parsing.
 };
 
-enum class AudioKey { in_queue, game_starts, game_over };
+enum class AudioKey { in_queue, queue_press_key, game_starts, game_over };
 
 struct AudioConfig {
     std::map<AudioKey, std::filesystem::path> paths;
@@ -55,6 +55,6 @@ struct Config {
     OscConfig osc;
 };
 
-Config load_config(const std::filesystem::path& filename);
+Config load_config(const std::filesystem::path &filename);
 
 } // namespace eventgamer
