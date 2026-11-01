@@ -36,6 +36,16 @@ const std::map<AudioKey, std::string_view> audio_key_names{
     {AudioKey::queue_press_key, "queue_press_key"},
     {AudioKey::game_starts, "game_starts"},
     {AudioKey::game_over, "game_over"},
+    {AudioKey::digit_0, "digit_0"},
+    {AudioKey::digit_1, "digit_1"},
+    {AudioKey::digit_2, "digit_2"},
+    {AudioKey::digit_3, "digit_3"},
+    {AudioKey::digit_4, "digit_4"},
+    {AudioKey::digit_5, "digit_5"},
+    {AudioKey::digit_6, "digit_6"},
+    {AudioKey::digit_7, "digit_7"},
+    {AudioKey::digit_8, "digit_8"},
+    {AudioKey::digit_9, "digit_9"},
 };
 
 void check_keys(const toml::table &table, std::initializer_list<std::string_view> allowed,

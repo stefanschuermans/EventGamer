@@ -22,6 +22,8 @@
 
 #include "logic.h"
 
+#include <vector>
+
 namespace eventgamer {
 
 class TimeoutManager;
@@ -40,10 +42,15 @@ class QueueLogic final : public Logic {
     void timeoutExpired() override;
 
   private:
+    void startPlayPosition();
+
     TimeoutManager &timeout_manager_;
     Client *client_;
     unsigned int timeout_cnt_;
     unsigned int queue_position_;
+    /** part of digits of current position in queue that still need to be played
+        to SIP, store in reverse order for algo simplicity */
+    std::vector<unsigned char> play_position_reverse_;
 };
 
 } // namespace eventgamer
