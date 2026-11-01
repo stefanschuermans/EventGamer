@@ -76,6 +76,7 @@ add_executable(EventGamer
     src/sip.cpp src/sip.h src/shutdown.cpp src/shutdown.h
     src/call.cpp src/call.h
     src/client.h src/logic.h
+    src/timeout_manager.cpp src/timeout_manager.h
     src/queue_logic.cpp src/queue_logic.h
     src/game_logic.cpp src/game_logic.h
 )
@@ -86,6 +87,10 @@ target_link_libraries(EventGamer PRIVATE tomlplusplus::tomlplusplus eventgamer_p
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(timeout_manager_test tests/timeout_manager_test.cpp src/timeout_manager.cpp)
+    target_include_directories(timeout_manager_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_features(timeout_manager_test PRIVATE cxx_std_17)
+    add_test(NAME timeout_manager COMMAND timeout_manager_test)
     add_executable(osc_protocol_test tests/osc_protocol_test.cpp)
     target_link_libraries(osc_protocol_test PRIVATE eventgamer_osc eventgamer_asio eventgamer_oscpack)
     add_test(NAME osc_protocol_ipv4 COMMAND osc_protocol_test ipv4)

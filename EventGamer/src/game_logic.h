@@ -27,11 +27,12 @@
 namespace eventgamer {
 
 class GameProtocol;
+class TimeoutManager;
 struct OSCMessage;
 
 class GameLogic final : public Logic {
   public:
-    explicit GameLogic(GameProtocol &protocol);
+    GameLogic(GameProtocol &protocol, TimeoutManager &timeout_manager);
     ~GameLogic() override;
     GameLogic(const GameLogic &) = delete;
     GameLogic &operator=(const GameLogic &) = delete;
@@ -41,6 +42,7 @@ class GameLogic final : public Logic {
     void clientDetaching() override;
     void audioFinished(AudioKey audio) override;
     void setQueuePosition(unsigned int position) override;
+    void timeoutExpired() override;
 
   private:
     void dumpMessage(const OSCMessage &message, std::ostream &stream);
@@ -54,6 +56,7 @@ class GameLogic final : public Logic {
     void sendStop();
 
     GameProtocol &protocol_;
+    TimeoutManager &timeout_manager_;
     Client *client_;
 
     bool game_over_;

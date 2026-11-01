@@ -33,6 +33,7 @@ class Logic {
     virtual void clientDetaching() = 0;
     virtual void audioFinished(AudioKey audio) = 0;
     virtual void setQueuePosition(unsigned int position) = 0;
+    virtual void timeoutExpired() = 0;
 };
 
 } // namespace eventgamer
