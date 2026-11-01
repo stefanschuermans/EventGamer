@@ -28,6 +28,9 @@
 
 namespace eventgamer {
 
+// time out the game after not input for some time
+static const unsigned int no_input_timeout_seconds = 20;
+
 GameLogic::GameLogic(GameProtocol &protocol, TimeoutManager &timeout_manager)
     : protocol_(protocol), timeout_manager_(timeout_manager), client_(nullptr), game_over_(false) {
     protocol_.setHandler([this](const OSCMessage &message) { messageReceived(message); });
@@ -48,6 +51,8 @@ void GameLogic::messageReceived(const OSCMessage &message) {
 }
 
 void GameLogic::keyPressed(char key) {
+    std::cout << "game key " << (key <= ' ' ? '?' : key) << std::endl;
+    timeout_manager_.registerTimeout(*this, no_input_timeout_seconds);
     if (game_over_)
         return;
     switch (key) {
@@ -68,12 +73,14 @@ void GameLogic::keyPressed(char key) {
 
 void GameLogic::clientAttached(Client &client) {
     client_ = &client;
-    timeout_manager_.cancelTimeout(*this);
+    std::cout << "game client joining" << std::endl;
+    timeout_manager_.registerTimeout(*this, no_input_timeout_seconds);
     client_->playAudio(AudioKey::game_starts);
     sendRestart();
 }
 
 void GameLogic::clientDetaching() {
+    std::cout << "game client leaving" << std::endl;
     sendStop();
     client_ = nullptr;
     timeout_manager_.cancelTimeout(*this);
@@ -86,7 +93,11 @@ void GameLogic::audioFinished(AudioKey) {
 
 void GameLogic::setQueuePosition(unsigned int) {}
 
-void GameLogic::timeoutExpired() {}
+void GameLogic::timeoutExpired() {
+    std::cout << "game timeout" << std::endl;
+    if (client_)
+        client_->hangUp();
+}
 
 void GameLogic::dumpMessage(const OSCMessage &message, std::ostream &stream) {
     stream << message.address;
