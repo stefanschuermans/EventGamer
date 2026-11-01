@@ -20,6 +20,7 @@
 
 #include "game_logic.h"
 #include "game_protocol.h"
+#include "timeout_manager.h"
 
 #include <iomanip>
 #include <iostream>
@@ -27,12 +28,15 @@
 
 namespace eventgamer {
 
-GameLogic::GameLogic(GameProtocol &protocol)
-    : protocol_(protocol), client_(nullptr), game_over_(false) {
+GameLogic::GameLogic(GameProtocol &protocol, TimeoutManager &timeout_manager)
+    : protocol_(protocol), timeout_manager_(timeout_manager), client_(nullptr), game_over_(false) {
     protocol_.setHandler([this](const OSCMessage &message) { messageReceived(message); });
 }
 
-GameLogic::~GameLogic() { protocol_.setHandler(GameProtocol::Handler{}); }
+GameLogic::~GameLogic() {
+    timeout_manager_.cancelTimeout(*this);
+    protocol_.setHandler(GameProtocol::Handler{});
+}
 
 void GameLogic::messageReceived(const OSCMessage &message) {
     std::cout << "Game OSC message received: ";
@@ -64,6 +68,7 @@ void GameLogic::keyPressed(char key) {
 
 void GameLogic::clientAttached(Client &client) {
     client_ = &client;
+    timeout_manager_.cancelTimeout(*this);
     client_->playAudio(AudioKey::game_starts);
     sendRestart();
 }
@@ -71,6 +76,7 @@ void GameLogic::clientAttached(Client &client) {
 void GameLogic::clientDetaching() {
     sendStop();
     client_ = nullptr;
+    timeout_manager_.cancelTimeout(*this);
 }
 
 void GameLogic::audioFinished(AudioKey) {
@@ -79,6 +85,8 @@ void GameLogic::audioFinished(AudioKey) {
 }
 
 void GameLogic::setQueuePosition(unsigned int) {}
+
+void GameLogic::timeoutExpired() {}
 
 void GameLogic::dumpMessage(const OSCMessage &message, std::ostream &stream) {
     stream << message.address;

@@ -24,9 +24,12 @@
 
 namespace eventgamer {
 
+class TimeoutManager;
+
 class QueueLogic final : public Logic {
   public:
-    explicit QueueLogic();
+    explicit QueueLogic(TimeoutManager &timeout_manager);
+    ~QueueLogic() override;
     QueueLogic(const QueueLogic &) = delete;
     QueueLogic &operator=(const QueueLogic &) = delete;
     void keyPressed(char key) override;
@@ -34,8 +37,10 @@ class QueueLogic final : public Logic {
     void clientDetaching() override;
     void audioFinished(AudioKey audio) override;
     void setQueuePosition(unsigned int position) override;
+    void timeoutExpired() override;
 
   private:
+    TimeoutManager &timeout_manager_;
     Client *client_;
 };
 

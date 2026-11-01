@@ -25,6 +25,7 @@
 #include "osc_transport.h"
 #include "queue_logic.h"
 #include "shutdown.h"
+#include "timeout_manager.h"
 
 #include <pjsua2.hpp>
 
@@ -40,8 +41,10 @@ namespace {
 
 class SipAccount final : public pj::Account {
   public:
-    SipAccount(const AudioConfig &audio, std::shared_ptr<GameLogic> game_logic)
-        : audio_config_(audio), game_logic_(std::move(game_logic)) {}
+    SipAccount(const AudioConfig &audio, std::shared_ptr<GameLogic> game_logic,
+               TimeoutManager &timeout_manager)
+        : audio_config_(audio), game_logic_(std::move(game_logic)),
+          timeout_manager_(timeout_manager) {}
 
     ~SipAccount() override {
         // Detach logic while the OSC transport is still alive so the current
@@ -73,7 +76,7 @@ class SipAccount final : public pj::Account {
         std::cout << "Incoming SIP call " << parameter.callId << std::endl;
         try {
             auto call = std::make_unique<ActiveCall>(*this, parameter.callId, audio_config_);
-            call->setLogic(std::make_shared<QueueLogic>());
+            call->setLogic(std::make_shared<QueueLogic>(timeout_manager_));
             auto &active = *call;
             // Incoming callbacks and answers run serially on main. Append before
             // answer(), which may itself invoke call callbacks synchronously.
@@ -132,6 +135,7 @@ class SipAccount final : public pj::Account {
 
     AudioConfig audio_config_;
     std::shared_ptr<GameLogic> game_logic_;
+    TimeoutManager &timeout_manager_;
     // Oldest accepted call first; erase preserves the order of remaining calls.
     std::vector<std::unique_ptr<ActiveCall>> calls_;
 };
@@ -198,8 +202,9 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, const OscConfig 
 
     OSCTransport osc_transport(osc);
     GameProtocol game_protocol(osc_transport);
-    auto game_logic = std::make_shared<GameLogic>(game_protocol);
-    SipAccount account(audio, game_logic);
+    TimeoutManager timeout_manager;
+    auto game_logic = std::make_shared<GameLogic>(game_protocol, timeout_manager);
+    SipAccount account(audio, game_logic, timeout_manager);
     pj::AccountConfig account_config;
     account_config.idUri = "sip:" + config.username + "@" + config.server;
     account_config.regConfig.registrarUri = "sip:" + config.server;
@@ -218,6 +223,7 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, const OscConfig 
     while (!shutdown_requested()) {
         const int result = endpoint.libHandleEvents(10);
         game_protocol.poll();
+        timeout_manager.tick();
         account.remove_finished_calls();
         account.process_audio_events();
         if (result < 0 && !shutdown_requested()) {

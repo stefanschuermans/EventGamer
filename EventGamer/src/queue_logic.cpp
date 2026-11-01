@@ -19,22 +19,32 @@
  */
 
 #include "queue_logic.h"
+#include "timeout_manager.h"
 
 namespace eventgamer {
 
-QueueLogic::QueueLogic() : client_(nullptr) {}
+QueueLogic::QueueLogic(TimeoutManager &timeout_manager)
+    : timeout_manager_(timeout_manager), client_(nullptr) {}
+
+QueueLogic::~QueueLogic() { timeout_manager_.cancelTimeout(*this); }
 
 void QueueLogic::keyPressed(char) {}
 
 void QueueLogic::clientAttached(Client &client) {
     client_ = &client;
+    timeout_manager_.cancelTimeout(*this);
     client_->playAudio(AudioKey::in_queue);
 }
 
-void QueueLogic::clientDetaching() { client_ = nullptr; }
+void QueueLogic::clientDetaching() {
+    client_ = nullptr;
+    timeout_manager_.cancelTimeout(*this);
+}
 
 void QueueLogic::audioFinished(AudioKey) {}
 
 void QueueLogic::setQueuePosition(unsigned int) {}
+
+void QueueLogic::timeoutExpired() {}
 
 } // namespace eventgamer
