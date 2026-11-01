@@ -44,8 +44,17 @@ class SipAccount final : public pj::Account {
         : audio_config_(audio), game_logic_(std::move(game_logic)) {}
 
     ~SipAccount() override {
-        // Call destructors detach callbacks and hang up any remaining calls while
-        // their account and the endpoint are still alive.
+        // Detach logic while the OSC transport is still alive so the current
+        // game receives its stop message, including during exception unwinding.
+        for (const auto &call : calls_) {
+            try {
+                call->setLogic(nullptr);
+            } catch (const std::exception &error) {
+                std::cerr << "Cannot detach call logic during shutdown: " << error.what()
+                          << std::endl;
+            }
+        }
+        // Destroy remaining calls while their account and endpoint are alive.
         calls_.clear();
         shutdown();
     }
