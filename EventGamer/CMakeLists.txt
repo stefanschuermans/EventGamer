@@ -55,7 +55,11 @@ else()
     # PJPROJECT commonly installs static libraries, so include private dependencies.
     target_link_directories(eventgamer_pjproject INTERFACE ${PJPROJECT_STATIC_LIBRARY_DIRS})
     target_link_libraries(eventgamer_pjproject INTERFACE ${PJPROJECT_STATIC_LIBRARIES})
-    target_link_options(eventgamer_pjproject INTERFACE ${PJPROJECT_STATIC_LDFLAGS_OTHER})
+    # Link options are de-duplicated, which would turn "-framework A -framework B"
+    # (macOS) into "-framework A B"; SHELL: keeps each pair together.
+    string(REPLACE "-framework;" "SHELL:-framework " pjproject_link_options
+        "${PJPROJECT_STATIC_LDFLAGS_OTHER}")
+    target_link_options(eventgamer_pjproject INTERFACE ${pjproject_link_options})
 endif()
 
 add_library(eventgamer_osc STATIC

@@ -1,0 +1,18 @@
+[sip]
+server = "hg.eventphone.de"
+username = "5808"
+# Relative to this config file. Copy sip-password.txt.example and edit it.
+password_file = "epvpn-snake_password.txt"
+
+[audio]
+# Relative paths are resolved against this configuration file's directory.
+in_queue = "audio/in_queue.wav"
+game_starts = "audio/game_starts.wav"
+game_over = "audio/game_over.wav"
+
+[osc]
+address_family = "ipv4"
+bind_host = "0.0.0.0"
+bind_port = 9000
+remote_host = "127.0.0.1"
+remote_port = 9001
