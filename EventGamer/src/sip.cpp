@@ -64,6 +64,19 @@ class SipAccount final : public pj::Account {
 
     void remove_finished_calls() {
         const auto previous_size = calls_.size();
+        // Calls the remote side ended (hang-up, dropped call) still have their
+        // logic attached. Detach it before the next caller is promoted, so a
+        // running game receives its stop message and no logic keeps a pointer
+        // to a removed call. Calls we hung up ourselves already have no logic.
+        for (const auto &call : calls_) {
+            if (call->finished()) {
+                try {
+                    call->setLogic(nullptr);
+                } catch (const std::exception &error) {
+                    std::cerr << "Cannot detach logic of ended call: " << error.what() << std::endl;
+                }
+            }
+        }
         calls_.erase(std::remove_if(calls_.begin(), calls_.end(),
                                     [](const auto &call) { return call->finished(); }),
                      calls_.end());
