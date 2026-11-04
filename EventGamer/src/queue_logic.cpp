@@ -79,6 +79,10 @@ void QueueLogic::audioFinished(AudioKey) {
 }
 
 void QueueLogic::setQueuePosition(unsigned int position) {
+    // Callers joining or leaving behind this caller do not change its position:
+    // keep the current announcement and idle timer running.
+    if (position == queue_position_)
+        return;
     std::cout << "queue " << queue_position_ << " update to position " << position << std::endl;
     queue_position_ = position;
     startPlayPosition();
