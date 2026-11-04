@@ -45,8 +45,9 @@ provide a local checkout using CMake's
 All settings shown in `example_configs/simple.toml` are required. Unknown keys
 are rejected. `osc.address_family` accepts exactly `ipv4`, `ipv6`, or `auto`;
 both ports must be integers from 1 to 65535. Audio paths are resolved relative
-to the configuration file. Audio file existence and WAV contents are not
-validated yet. Keep actual passwords out of version control.
+to the configuration file. Every audio file is opened once at startup, so a
+missing or unsupported WAV file stops EventGamer before it registers with the SIP
+server. Keep actual passwords out of version control.
 
 `sip.password_file` is required and must be a relative path, resolved against
 the TOML file's directory. Its text file contains one nonempty password line.

@@ -212,6 +212,17 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, const OscConfig 
               << transport_info.localName << std::endl;
     endpoint.libStart();
     endpoint.audDevManager().setNullDev();
+    // Open every sound once, so a missing or unsupported file stops startup
+    // instead of ending the program when it is first played during a call.
+    for (const auto &[key, path] : audio.paths) {
+        try {
+            pj::AudioMediaPlayer player;
+            player.createPlayer(path.u8string(), PJMEDIA_FILE_NO_LOOP);
+        } catch (const pj::Error &error) {
+            throw std::runtime_error("Cannot open audio file " + path.u8string() + ": " +
+                                     error.reason);
+        }
+    }
 
     OSCTransport osc_transport(osc);
     GameProtocol game_protocol(osc_transport);
