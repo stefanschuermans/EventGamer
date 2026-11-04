@@ -45,6 +45,17 @@ class GameLogic final : public Logic {
     void timeoutExpired() override;
 
   private:
+    // State of the attached player's game. A game only exists on the MadMapper
+    // side once the player has sent a direction, so stop is sent and game-over
+    // replies are accepted only while running.
+    enum class State {
+        no_player, // no client attached
+        intro,     // game-start announcement playing, directions are ignored
+        ready,     // waiting for the first direction to start the game
+        running,   // directions are forwarded
+        over,      // game-over announcement playing, then hang up
+    };
+
     void dumpMessage(const OSCMessage &message, std::ostream &stream);
     void onGameOver();
     void sendMessage(const OSCMessage &message);
@@ -52,14 +63,13 @@ class GameLogic final : public Logic {
     void sendDown();
     void sendLeft();
     void sendRight();
-    void sendRestart();
     void sendStop();
 
     GameProtocol &protocol_;
     TimeoutManager &timeout_manager_;
     Client *client_;
 
-    bool game_over_;
+    State state_;
 };
 
 } // namespace eventgamer
