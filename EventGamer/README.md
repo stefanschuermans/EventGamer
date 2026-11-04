@@ -146,6 +146,7 @@ GameLogic sends the Snake commands through GameProtocol and handles
 `/snake_reply/game_over`. It treats a game as running from the player's first
 forwarded direction until a game-over reply or the player leaving; `/snake/stop` is
 sent only for a running game, and game-over replies outside a running game are ignored.
+GameLogic logs failed sends and continues, so a network error cannot end EventGamer.
 
 Run the OSC loopback tests with:
 
