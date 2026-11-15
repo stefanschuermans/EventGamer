@@ -40,6 +40,7 @@ enum class AudioKey {
     queue_press_key,
     game_starts,
     game_over,
+    game_music, // optional, may be missing from AudioConfig::paths
     digit_0,
     digit_1,
     digit_2,

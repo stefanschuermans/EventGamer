@@ -43,6 +43,7 @@ class Logic {
   protected:
     void hangUp();
     void playAudio(AudioKey audio);
+    void playAudioLoop(AudioKey audio);
 
     TimeoutManager &timeout_manager_;
     Client *client_;

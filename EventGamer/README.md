@@ -42,7 +42,8 @@ If none is found, configuration downloads toml++ v3.4.0 from GitHub. For an offl
 provide a local checkout using CMake's
 `-DFETCHCONTENT_SOURCE_DIR_TOMLPLUSPLUS=/path/to/tomlplusplus` option.
 
-All settings shown in `example_configs/simple.toml` are required. Unknown keys
+All settings shown in `example_configs/simple.toml` are required, except the
+commented-out `audio.game_music` (background music, silent if omitted). Unknown keys
 are rejected. `osc.address_family` accepts exactly `ipv4`, `ipv6`, or `auto`;
 both ports must be integers from 1 to 65535. Audio paths are resolved relative
 to the configuration file. Every audio file is opened once at startup, so a
@@ -74,9 +75,12 @@ incoming/outgoing SIP messages, including addressing and authentication headers;
 redact those headers before sharing a trace. Normal logging reports the bound
 and advertised SIP address, incoming calls, rejected calls, and queue playback.
 
-Each incoming call is represented by an `ActiveCall` with its own WAV player. All sounds use non-looping playback.
+Each incoming call is represented by an `ActiveCall` with its own WAV player, so
+one sound plays at a time and starting a sound replaces the current one.
 Calls are kept in a vector in acceptance order, oldest first. No player is created on acceptance. `Client::playAudio()` selects a configured
-sound and starts it when audio media is active.
+sound and starts it when audio media is active. `Client::playAudioLoop()` repeats a
+sound until it is replaced or the call ends, and never reports it as finished.
+Both skip a sound that is not configured.
 Disconnected calls are removed by the main loop without changing the order of
 remaining calls. Their logic is detached first, so a remote hang-up or dropped call
 of the active player stops a running game before the next caller takes over. Queue WAV files must be supported by PJSUA2 (16-bit PCM mono).
@@ -108,8 +112,9 @@ When a sound finishes, `Logic::audioFinished(AudioKey)` is called once
 on the main thread. The media-thread EOF callback only sets an atomic flag, so
 logic can safely start a new sound or hang up. Replacing a sound interrupts it
 without a completion notification. QueueLogic uses it to play the queue position
-digit by digit; GameLogic uses it to accept directions after the game-start
-announcement and to hang up after the game-over announcement.
+digit by digit; GameLogic uses it to accept directions and loop the background
+music after the game-start announcement, and to hang up after the game-over
+announcement, which also ends the music.
 
 OSC uses standalone Asio for UDP and oscpack for message encoding/decoding.
 CMake prefers installed copies; on Debian use

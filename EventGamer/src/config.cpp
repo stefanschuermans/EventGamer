@@ -36,6 +36,7 @@ const std::map<AudioKey, std::string_view> audio_key_names{
     {AudioKey::queue_press_key, "queue_press_key"},
     {AudioKey::game_starts, "game_starts"},
     {AudioKey::game_over, "game_over"},
+    {AudioKey::game_music, "game_music"},
     {AudioKey::digit_0, "digit_0"},
     {AudioKey::digit_1, "digit_1"},
     {AudioKey::digit_2, "digit_2"},
@@ -161,6 +162,10 @@ Config load_config(const std::filesystem::path &filename) {
     const auto base = std::filesystem::absolute(filename).parent_path();
     AudioConfig audio_config;
     for (const auto &[key, name] : audio_key_names) {
+        // Background music is optional: without it the game is silent.
+        if (key == AudioKey::game_music && !audio.contains(name)) {
+            continue;
+        }
         const auto path = std::filesystem::u8path(require_string(audio, "audio", name));
         audio_config.paths.emplace(key,
                                    (path.is_absolute() ? path : base / path).lexically_normal());

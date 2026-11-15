@@ -28,7 +28,12 @@ class Client {
   public:
     virtual ~Client() = default;
 
+    // Both replace the current sound. A sound that is not configured is skipped
+    // and leaves the current sound playing.
+    // Plays once; Logic::audioFinished() reports the end.
     virtual void playAudio(AudioKey audio) = 0;
+    // Repeats until replaced or the call ends; never reported as finished.
+    virtual void playAudioLoop(AudioKey audio) = 0;
     virtual void hangUp() = 0;
 };
 

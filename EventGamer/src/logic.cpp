@@ -46,4 +46,9 @@ void Logic::playAudio(AudioKey audio) {
         client_->playAudio(audio);
 }
 
+void Logic::playAudioLoop(AudioKey audio) {
+    if (client_)
+        client_->playAudioLoop(audio);
+}
+
 } // namespace eventgamer

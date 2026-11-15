@@ -10,6 +10,8 @@ in_queue = "audio/in_queue.wav"
 queue_press_key = "audio/queue_press_key.wav"
 game_starts = "audio/game_starts.wav"
 game_over = "audio/game_over.wav"
+# Optional background music, repeated from the end of game_starts until game_over.
+# game_music = "audio/game_music.wav"
 digit_0 = "audio/digit_0.wav"
 digit_1 = "audio/digit_1.wav"
 digit_2 = "audio/digit_2.wav"
