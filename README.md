@@ -29,12 +29,20 @@ Start with [EventGamer/example_configs/simple.toml](EventGamer/example_configs/s
   WAV files (16-bit PCM mono). Relative paths resolve from the config directory.
 
 Configure the MadMapper Snake implementation to accept `/snake/up`,
-`/snake/left`, `/snake/right`, `/snake/down`, `/snake/restart`, and `/snake/stop`,
-each carrying an OSC float `1.0`. Send `/snake_reply/game_over` back to
-EventGamer's configured bind address and port when the game ends; use a reachable
-host address rather than the wildcard `0.0.0.0`. EventGamer starts a game when a
-player is attached, stops it when they detach, and plays the game-over announcement
-before hanging up.
+`/snake/left`, `/snake/right`, `/snake/down`, and `/snake/stop`, each carrying an
+OSC float `1.0`. A direction in the idle start state starts a new game. Send
+`/snake_reply/game_over` back to EventGamer's configured bind address and port when
+the game ends, including after `/snake/stop`; use a reachable host address rather
+than the wildcard `0.0.0.0`.
+
+When a caller becomes the active player, EventGamer plays the game-start
+announcement and only then forwards their directions; the first one starts the game.
+The announcement should outlast MadMapper's death animation and score screen of the
+previous game. If the player leaves a running game (hang-up, dropped call, 20 s
+without input, or shutdown), EventGamer sends `/snake/stop`. A game-over reply ends
+the running game: EventGamer plays the game-over announcement and hangs up. Game-over
+replies that arrive while no game is running, such as duplicates or the reply to a
+previous player's stop, are ignored.
 
 Build and run from the repository root:
 

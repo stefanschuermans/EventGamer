@@ -77,7 +77,8 @@ Each incoming call is represented by an `ActiveCall` with its own WAV player. Al
 Calls are kept in a vector in acceptance order, oldest first. No player is created on acceptance. `Client::playAudio()` selects a configured
 sound and starts it when audio media is active.
 Disconnected calls are removed by the main loop without changing the order of
-remaining calls. Queue WAV files must be supported by PJSUA2 (16-bit PCM mono).
+remaining calls. Their logic is detached first, so a remote hang-up or dropped call
+of the active player stops a running game before the next caller takes over. Queue WAV files must be supported by PJSUA2 (16-bit PCM mono).
 Concurrent call capacity uses PJSUA2's default limit (normally four calls);
 increasing it will require endpoint configuration and possibly rebuilding PJPROJECT.
 
@@ -105,8 +106,9 @@ PATH (on Debian: `sudo apt install clangd`). Configure CMake once to generate
 When a sound finishes, `Logic::audioFinished(AudioKey)` is called once
 on the main thread. The media-thread EOF callback only sets an atomic flag, so
 logic can safely start a new sound or hang up. Replacing a sound interrupts it
-without a completion notification. QueueLogic and GameLogic currently leave
-this callback empty.
+without a completion notification. QueueLogic uses it to play the queue position
+digit by digit; GameLogic uses it to accept directions after the game-start
+announcement and to hang up after the game-over announcement.
 
 OSC uses standalone Asio for UDP and oscpack for message encoding/decoding.
 CMake prefers installed copies; on Debian use
@@ -139,7 +141,10 @@ Immediate bundles are supported, including nesting up to 16 levels. Scheduled
 bundles and unsupported argument types are rejected. Malformed packets are
 logged and do not stop subsequent reception. UDP send errors propagate to the
 caller; delivery, acknowledgment, and retransmission are not provided.
-GameLogic holds the GameProtocol reference, ready for command/status behavior.
+GameLogic sends the Snake commands through GameProtocol and handles
+`/snake_reply/game_over`. It treats a game as running from the player's first
+forwarded direction until a game-over reply or the player leaving; `/snake/stop` is
+sent only for a running game, and game-over replies outside a running game are ignored.
 
 Run the OSC loopback tests with:
 

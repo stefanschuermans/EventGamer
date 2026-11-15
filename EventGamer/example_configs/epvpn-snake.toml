@@ -24,6 +24,6 @@ digit_9 = "audio/digit_9.wav"
 [osc]
 address_family = "ipv4"
 bind_host = "127.0.0.1"
-bind_port = 9000
+bind_port = 9001
 remote_host = "127.0.0.1"
-remote_port = 8010
+remote_port = 8011

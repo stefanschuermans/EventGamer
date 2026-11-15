@@ -89,8 +89,11 @@ void QueueLogic::timeoutExpired() {
         timeout_cnt_++;
     else {
         std::cout << "queue " << queue_position_ << " timeout" << std::endl;
+        // Hanging up detaches this logic from the call, which usually destroys
+        // it: return without touching any member afterwards.
         if (client_)
             client_->hangUp();
+        return;
     }
     if (client_)
         client_->playAudio(AudioKey::queue_press_key);
