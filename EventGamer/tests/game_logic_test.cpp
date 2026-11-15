@@ -52,7 +52,7 @@ class FakeClient final : public Client {
         ++hangups;
         if (auto *current = logic) {
             logic = nullptr;
-            current->clientDetaching();
+            current->clientDetach();
         }
     }
 
@@ -127,13 +127,13 @@ class FakeMapper {
 
 void attach(GameLogic &game, FakeClient &client) {
     client.logic = &game;
-    game.clientAttached(client);
+    game.clientAttach(client);
 }
 
 void detach(FakeClient &client) {
     if (auto *current = client.logic) {
         client.logic = nullptr;
-        current->clientDetaching();
+        current->clientDetach();
     }
 }
 

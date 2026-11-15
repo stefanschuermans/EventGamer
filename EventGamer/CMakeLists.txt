@@ -75,7 +75,7 @@ add_executable(EventGamer
     src/main.cpp src/config.cpp src/config.h
     src/sip.cpp src/sip.h src/shutdown.cpp src/shutdown.h
     src/call.cpp src/call.h
-    src/client.h src/logic.h
+    src/client.h src/logic.cpp src/logic.h
     src/timeout_manager.cpp src/timeout_manager.h
     src/queue_logic.cpp src/queue_logic.h
     src/game_logic.cpp src/game_logic.h
@@ -87,7 +87,7 @@ target_link_libraries(EventGamer PRIVATE tomlplusplus::tomlplusplus eventgamer_p
 
 include(CTest)
 if(BUILD_TESTING)
-    add_executable(timeout_manager_test tests/timeout_manager_test.cpp src/timeout_manager.cpp)
+    add_executable(timeout_manager_test tests/timeout_manager_test.cpp src/timeout_manager.cpp src/logic.cpp)
     target_include_directories(timeout_manager_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_features(timeout_manager_test PRIVATE cxx_std_17)
     add_test(NAME timeout_manager COMMAND timeout_manager_test)
@@ -99,7 +99,7 @@ if(BUILD_TESTING)
     set_tests_properties(osc_protocol_ipv6 PROPERTIES SKIP_RETURN_CODE 77)
     set_tests_properties(osc_protocol_ipv4 osc_protocol_ipv6 osc_protocol_auto PROPERTIES TIMEOUT 10)
     add_executable(game_logic_test tests/game_logic_test.cpp
-        src/game_logic.cpp src/timeout_manager.cpp)
+        src/game_logic.cpp src/timeout_manager.cpp src/logic.cpp)
     target_link_libraries(game_logic_test PRIVATE eventgamer_osc eventgamer_asio eventgamer_oscpack)
     add_test(NAME game_logic COMMAND game_logic_test)
     set_tests_properties(game_logic PROPERTIES TIMEOUT 10)

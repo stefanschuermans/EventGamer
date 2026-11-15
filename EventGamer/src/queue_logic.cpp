@@ -33,8 +33,7 @@ static const unsigned int max_idle_seconds = 20;
 static const unsigned int max_idle_repeat = 3;
 
 QueueLogic::QueueLogic(TimeoutManager &timeout_manager)
-    : timeout_manager_(timeout_manager), client_(nullptr), timeout_cnt_(0), queue_position_(0),
-      play_position_reverse_() {}
+    : Logic(timeout_manager), timeout_cnt_(0), queue_position_(0), play_position_reverse_() {}
 
 QueueLogic::~QueueLogic() { timeout_manager_.cancelTimeout(*this); }
 
@@ -43,17 +42,14 @@ void QueueLogic::keyPressed(char) {
     startPlayPosition();
 }
 
-void QueueLogic::clientAttached(Client &client) {
-    client_ = &client;
+void QueueLogic::clientAttached() {
     std::cout << "queue " << queue_position_ << " added" << std::endl;
     timeout_cnt_ = 0;
     startPlayPosition();
 }
 
 void QueueLogic::clientDetaching() {
-    client_ = nullptr;
     std::cout << "queue " << queue_position_ << " leaving" << std::endl;
-    timeout_manager_.cancelTimeout(*this);
     timeout_cnt_ = 0;
 }
 
@@ -74,8 +70,7 @@ void QueueLogic::audioFinished(AudioKey) {
     };
     static const unsigned int digit_audio_key_cnt =
         sizeof(digit_audio_keys) / sizeof(digit_audio_keys[0]);
-    if (client_)
-        client_->playAudio(digit_audio_keys[digit % digit_audio_key_cnt]);
+    playAudio(digit_audio_keys[digit % digit_audio_key_cnt]);
 }
 
 void QueueLogic::setQueuePosition(unsigned int position) {
@@ -91,19 +86,15 @@ void QueueLogic::timeoutExpired() {
         std::cout << "queue " << queue_position_ << " timeout" << std::endl;
         // Hanging up detaches this logic from the call, which usually destroys
         // it: return without touching any member afterwards.
-        if (client_)
-            client_->hangUp();
+        hangUp();
         return;
     }
-    if (client_)
-        client_->playAudio(AudioKey::queue_press_key);
     play_position_reverse_.clear(); // don't play position after "press key"
+    playAudio(AudioKey::queue_press_key);
 }
 
 void QueueLogic::startPlayPosition() {
     timeout_manager_.cancelTimeout(*this);
-    if (client_)
-        client_->playAudio(AudioKey::in_queue);
 
     // split current queue position into digits still to play, stored in
     // reverse, never report position 0 to user
@@ -113,6 +104,7 @@ void QueueLogic::startPlayPosition() {
         play_position_reverse_.push_back(position % 10);
         position /= 10;
     }
+    playAudio(AudioKey::in_queue);
 }
 
 } // namespace eventgamer

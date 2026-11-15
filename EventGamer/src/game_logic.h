@@ -38,7 +38,7 @@ class GameLogic final : public Logic {
     GameLogic &operator=(const GameLogic &) = delete;
     void messageReceived(const OSCMessage &message);
     void keyPressed(char key) override;
-    void clientAttached(Client &client) override;
+    void clientAttached() override;
     void clientDetaching() override;
     void audioFinished(AudioKey audio) override;
     void setQueuePosition(unsigned int position) override;
@@ -66,8 +66,6 @@ class GameLogic final : public Logic {
     void sendStop();
 
     GameProtocol &protocol_;
-    TimeoutManager &timeout_manager_;
-    Client *client_;
 
     State state_;
 };

@@ -36,8 +36,10 @@ void require(bool condition, const char *message) {
 
 class TestLogic final : public Logic {
   public:
+    using Logic::Logic;
+
     void keyPressed(char) override {}
-    void clientAttached(Client &) override {}
+    void clientAttached() override {}
     void clientDetaching() override {}
     void audioFinished(AudioKey) override {}
     void setQueuePosition(unsigned int) override {}
@@ -56,7 +58,7 @@ class TestLogic final : public Logic {
 int main() {
     try {
         TimeoutManager manager;
-        TestLogic first, second;
+        TestLogic first(manager), second(manager);
         manager.cancelTimeout(first);
         manager.tick();
 

@@ -22,6 +22,7 @@
 #include "game_protocol.h"
 #include "timeout_manager.h"
 
+#include <exception>
 #include <iomanip>
 #include <iostream>
 #include <type_traits>
@@ -32,8 +33,7 @@ namespace eventgamer {
 static const unsigned int no_input_timeout_seconds = 20;
 
 GameLogic::GameLogic(GameProtocol &protocol, TimeoutManager &timeout_manager)
-    : protocol_(protocol), timeout_manager_(timeout_manager), client_(nullptr),
-      state_(State::no_player) {
+    : Logic(timeout_manager), protocol_(protocol), state_(State::no_player) {
     protocol_.setHandler([this](const OSCMessage &message) { messageReceived(message); });
 }
 
@@ -88,14 +88,13 @@ void GameLogic::keyPressed(char key) {
     }
 }
 
-void GameLogic::clientAttached(Client &client) {
-    client_ = &client;
+void GameLogic::clientAttached() {
     state_ = State::intro;
     std::cout << "game client joining" << std::endl;
     timeout_manager_.registerTimeout(*this, no_input_timeout_seconds);
     // No restart: the game starts with the player's first direction, which also
     // gives MadMapper time to finish a previous game's death and score screens.
-    client_->playAudio(AudioKey::game_starts);
+    playAudio(AudioKey::game_starts);
 }
 
 void GameLogic::clientDetaching() {
@@ -104,7 +103,6 @@ void GameLogic::clientDetaching() {
     // Forget the client before sending, so a failing send cannot leave a
     // reference to a call that is about to be destroyed.
     state_ = State::no_player;
-    client_ = nullptr;
     timeout_manager_.cancelTimeout(*this);
     if (running)
         sendStop();
@@ -114,8 +112,8 @@ void GameLogic::audioFinished(AudioKey audio) {
     if (state_ == State::intro && audio == AudioKey::game_starts) {
         std::cout << "game ready, waiting for first direction" << std::endl;
         state_ = State::ready;
-    } else if (state_ == State::over && audio == AudioKey::game_over && client_) {
-        client_->hangUp();
+    } else if (state_ == State::over && audio == AudioKey::game_over) {
+        hangUp();
     }
 }
 
@@ -123,8 +121,7 @@ void GameLogic::setQueuePosition(unsigned int) {}
 
 void GameLogic::timeoutExpired() {
     std::cout << "game timeout" << std::endl;
-    if (client_)
-        client_->hangUp();
+    hangUp();
 }
 
 void GameLogic::dumpMessage(const OSCMessage &message, std::ostream &stream) {
@@ -156,15 +153,19 @@ void GameLogic::onGameOver() {
     }
     std::cout << "game over" << std::endl;
     state_ = State::over;
-    if (client_)
-        client_->playAudio(AudioKey::game_over);
+    playAudio(AudioKey::game_over);
 }
 
 void GameLogic::sendMessage(const OSCMessage &message) {
     std::cout << "Sending game OSC message: ";
     dumpMessage(message, std::cout);
     std::cout << std::endl;
-    protocol_.sendMessage(message);
+    try {
+        protocol_.sendMessage(message);
+    } catch (const std::exception &error) {
+        std::cerr << "Warning: failed to send game OSC message " << message.address << ": "
+                  << error.what() << std::endl;
+    }
 }
 
 void GameLogic::sendUp() { sendMessage({"/snake/up", {1.0f}}); }
