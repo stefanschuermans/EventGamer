@@ -212,6 +212,21 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, const OscConfig 
               << transport_info.localName << std::endl;
     endpoint.libStart();
     endpoint.audDevManager().setNullDev();
+    // Open every sound once, so a missing or unsupported file stops startup
+    // instead of ending the program when it is first played during a call.
+    // Uses the C API: pj::AudioMediaPlayer's destructor removes its conference
+    // port twice, which logs a harmless "Remove port ... failed" per file.
+    for (const auto &[key, path] : audio.paths) {
+        const auto file = path.u8string();
+        pj_str_t name = pj_str(const_cast<char *>(file.c_str()));
+        pjsua_player_id player;
+        const pj_status_t status = pjsua_player_create(&name, PJMEDIA_FILE_NO_LOOP, &player);
+        if (status != PJ_SUCCESS) {
+            throw std::runtime_error("Cannot open audio file " + file + ": " +
+                                     endpoint.utilStrError(status));
+        }
+        pjsua_player_destroy(player);
+    }
 
     OSCTransport osc_transport(osc);
     GameProtocol game_protocol(osc_transport);

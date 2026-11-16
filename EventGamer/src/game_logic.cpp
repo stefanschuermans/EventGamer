@@ -160,6 +160,8 @@ void GameLogic::sendMessage(const OSCMessage &message) {
     std::cout << "Sending game OSC message: ";
     dumpMessage(message, std::cout);
     std::cout << std::endl;
+    // UDP gives no delivery guarantee anyway. A failed send is logged, so it
+    // cannot end the program from a key press or timeout callback.
     try {
         protocol_.sendMessage(message);
     } catch (const std::exception &error) {
