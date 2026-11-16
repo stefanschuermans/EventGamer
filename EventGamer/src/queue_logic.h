@@ -35,7 +35,7 @@ class QueueLogic final : public Logic {
     QueueLogic(const QueueLogic &) = delete;
     QueueLogic &operator=(const QueueLogic &) = delete;
     void keyPressed(char key) override;
-    void clientAttached(Client &client) override;
+    void clientAttached() override;
     void clientDetaching() override;
     void audioFinished(AudioKey audio) override;
     void setQueuePosition(unsigned int position) override;
@@ -44,8 +44,6 @@ class QueueLogic final : public Logic {
   private:
     void startPlayPosition();
 
-    TimeoutManager &timeout_manager_;
-    Client *client_;
     unsigned int timeout_cnt_;
     unsigned int queue_position_;
     /** part of digits of current position in queue that still need to be played

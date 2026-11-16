@@ -20,6 +20,7 @@
 
 #include "call.h"
 
+#include <exception>
 #include <iostream>
 #include <utility>
 
@@ -32,22 +33,41 @@ void ActiveCall::playAudio(AudioKey audio) {
     if (disconnected_) {
         return;
     }
-    auto next = std::make_unique<SoundPlayer>(audio);
-    next->createPlayer(audio_config_.paths.at(audio).u8string(), PJMEDIA_FILE_NO_LOOP);
+    try {
+        auto next = std::make_unique<SoundPlayer>(audio);
+        next->createPlayer(audio_config_.paths.at(audio).u8string(), PJMEDIA_FILE_NO_LOOP);
 
-    const auto info = getInfo();
-    for (const auto &media : info.media) {
-        if (media.type == PJMEDIA_TYPE_AUDIO && media.status == PJSUA_CALL_MEDIA_ACTIVE) {
-            auto sink = getAudioMedia(static_cast<int>(media.index));
-            if (player_) {
-                player_->stopTransmit(sink);
+        const auto info = getInfo();
+        for (const auto &media : info.media) {
+            if (media.type == PJMEDIA_TYPE_AUDIO && media.status == PJSUA_CALL_MEDIA_ACTIVE) {
+                auto sink = getAudioMedia(static_cast<int>(media.index));
+                if (player_) {
+                    player_->stopTransmit(sink);
+                }
+                next->startTransmit(sink);
+                break;
             }
-            next->startTransmit(sink);
-            break;
         }
+        // If media is not active yet, onCallMediaState will connect this player later.
+        player_ = std::move(next);
+
+        // Starting audio worked, leave here.
+        return;
+
+    } catch (const pj::Error &error) {
+        std::cerr << "Warning: SIP call " << getId() << ": cannot play audio: " << error.info()
+                  << std::endl;
+    } catch (const std::exception &error) {
+        std::cerr << "Warning: SIP call " << getId() << ": cannot play audio: " << error.what()
+                  << std::endl;
     }
-    // If media is not active yet, onCallMediaState will connect this player later.
-    player_ = std::move(next);
+
+    // Starting audio did not work, send the notification already now, so the
+    // logic continues as planned, with only the audio missing, but avoiding
+    // to wait for end of failed audio forever.
+    if (auto current_logic = logic) {
+        current_logic->audioFinished(audio);
+    }
 }
 
 void ActiveCall::processAudioEvents() {
@@ -77,11 +97,11 @@ void ActiveCall::hangUp() {
 
 void ActiveCall::setLogic(std::shared_ptr<Logic> new_logic) {
     if (auto previous_logic = logic) {
-        previous_logic->clientDetaching();
+        previous_logic->clientDetach();
     }
     logic = std::move(new_logic);
     if (auto current_logic = logic) {
-        current_logic->clientAttached(*this);
+        current_logic->clientAttach(*this);
     }
 }
 
