@@ -24,6 +24,7 @@
 #include "game_protocol.h"
 #include "osc_transport.h"
 #include "queue_logic.h"
+#include "registration_retry.h"
 #include "shutdown.h"
 #include "timeout_manager.h"
 
@@ -111,13 +112,44 @@ class SipAccount final : public pj::Account {
         }
     }
 
+    // Sends a REGISTER when the next attempt is due. PJSIP's own retry is off:
+    // it gives up for good on failures it does not consider temporary, such as
+    // a 401 after repeated stale nonces while the server or network is unstable.
+    void retry_registration_if_due() {
+        if (!registration_retry_.due(RegistrationRetry::Clock::now()))
+            return;
+        try {
+            setRegistration(true);
+        } catch (const pj::Error &error) {
+            const auto delay = registration_retry_.failed(RegistrationRetry::Clock::now());
+            std::cerr << "Cannot send SIP registration: " << error.info() << "; retrying in "
+                      << delay.count() << " s" << std::endl;
+        }
+    }
+
     void onRegState(pj::OnRegStateParam &parameter) override {
         try {
             const auto info = getInfo();
-            std::cout << "SIP registration: " << parameter.code
-                      << (info.regIsActive ? " (registered)" : " (not registered)") << std::endl;
+            std::cout << "SIP registration: " << parameter.code;
+            if (!parameter.reason.empty())
+                std::cout << ' ' << parameter.reason;
+            std::cout << (info.regIsActive ? " (registered)" : " (not registered)");
+            if (parameter.status != PJ_SUCCESS)
+                std::cout << ": " << pj::Endpoint::instance().utilStrError(parameter.status);
+            // Same failure test as PJSIP; a successful unregistration is none.
+            const int code = parameter.code;
+            const bool failed = parameter.status != PJ_SUCCESS || code < 0 || code >= 300;
+            if (info.regIsActive) {
+                registration_retry_.succeeded();
+            } else if (failed) {
+                const auto delay = registration_retry_.failed(RegistrationRetry::Clock::now());
+                std::cout << "; retrying in " << delay.count() << " s";
+            }
+            std::cout << std::endl;
         } catch (const pj::Error &error) {
             std::cerr << "Cannot read SIP registration state: " << error.info() << std::endl;
+            // Without the state, retrying is safer than possibly never registering.
+            registration_retry_.failed(RegistrationRetry::Clock::now());
         }
     }
 
@@ -149,6 +181,7 @@ class SipAccount final : public pj::Account {
     AudioConfig audio_config_;
     std::shared_ptr<GameLogic> game_logic_;
     TimeoutManager &timeout_manager_;
+    RegistrationRetry registration_retry_;
     // Oldest accepted call first; erase preserves the order of remaining calls.
     std::vector<std::unique_ptr<ActiveCall>> calls_;
 };
@@ -236,9 +269,10 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, const OscConfig 
     pj::AccountConfig account_config;
     account_config.idUri = "sip:" + config.username + "@" + config.server;
     account_config.regConfig.registrarUri = "sip:" + config.server;
-    account_config.regConfig.registerOnAdd = true;
-    account_config.regConfig.retryIntervalSec = 30;
-    account_config.regConfig.firstRetryIntervalSec = 5;
+    // The main loop sends the first REGISTER and every retry, see
+    // retry_registration_if_due(); PJSIP only refreshes a registration.
+    account_config.regConfig.registerOnAdd = false;
+    account_config.regConfig.retryIntervalSec = 0;
     account_config.regConfig.unregWaitMsec = 2000;
     account_config.sipConfig.authCreds.emplace_back("digest", "*", config.username, 0,
                                                     config.password);
@@ -252,6 +286,7 @@ void run_sip(const SipConfig &config, const AudioConfig &audio, const OscConfig 
         const int result = endpoint.libHandleEvents(10);
         game_protocol.poll();
         timeout_manager.tick();
+        account.retry_registration_if_due();
         account.remove_finished_calls();
         account.process_audio_events();
         if (result < 0 && !shutdown_requested()) {

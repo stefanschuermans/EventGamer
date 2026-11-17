@@ -63,10 +63,15 @@ prefix. The same server is used as the account domain. This initial version
 creates an IPv4 UDP transport; use an IPv4-reachable server. The OSC address
 family setting does not control SIP.
 
-PJSUA2 refreshes registration automatically and retries eligible transient failures
-after 30 seconds (initial transport-failure retry after 5 seconds). Registration
-status is printed; rejected credentials must be fixed in the config and the app
-restarted. The main thread polls SIP events at intervals up to 10 ms.
+PJSUA2 refreshes a successful registration automatically. EventGamer itself sends
+the first registration and retries every failed one, whatever the cause: after
+5 seconds, then doubling up to once a minute, until registration succeeds.
+PJSUA2's own retry is disabled because it gives up for good on failures it does not
+consider transient, such as a 401 after repeated stale nonces during a server
+outage. Each registration result is printed with its status code, reason, PJSIP
+error, and the time until the next retry; rejected credentials keep being retried
+until they are fixed in the config and the app is restarted. The main thread polls
+SIP events at intervals up to 10 ms.
 No physical sound device is required.
 
 For SIP diagnostics, run `EventGamer <config.toml> --sip-trace`. This prints

@@ -74,6 +74,7 @@ target_link_libraries(eventgamer_osc PRIVATE eventgamer_asio eventgamer_oscpack)
 add_executable(EventGamer
     src/main.cpp src/config.cpp src/config.h
     src/sip.cpp src/sip.h src/shutdown.cpp src/shutdown.h
+    src/registration_retry.cpp src/registration_retry.h
     src/call.cpp src/call.h
     src/client.h src/logic.cpp src/logic.h
     src/timeout_manager.cpp src/timeout_manager.h
@@ -91,6 +92,11 @@ if(BUILD_TESTING)
     target_include_directories(timeout_manager_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_features(timeout_manager_test PRIVATE cxx_std_17)
     add_test(NAME timeout_manager COMMAND timeout_manager_test)
+    add_executable(registration_retry_test tests/registration_retry_test.cpp
+        src/registration_retry.cpp)
+    target_include_directories(registration_retry_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_features(registration_retry_test PRIVATE cxx_std_17)
+    add_test(NAME registration_retry COMMAND registration_retry_test)
     add_executable(osc_protocol_test tests/osc_protocol_test.cpp)
     target_link_libraries(osc_protocol_test PRIVATE eventgamer_osc eventgamer_asio eventgamer_oscpack)
     add_test(NAME osc_protocol_ipv4 COMMAND osc_protocol_test ipv4)

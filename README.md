@@ -21,6 +21,8 @@ Start with [EventGamer/example_configs/simple.toml](EventGamer/example_configs/s
 - `[sip]`: set `server` and `username` to your Eventphone SIP account details.
   Put the password on a single line in the file named by `password_file`, relative
   to the config file. Keep this password file out of version control.
+  If registration fails, for example during a SIP server outage, EventGamer keeps
+  retrying, at most once a minute, until it is registered again.
 - `[osc]`: set `remote_host` to the MadMapper machine and `remote_port` to its OSC
   input port. Set `bind_host` and `bind_port` for EventGamer's incoming OSC replies,
   and select `address_family` (`ipv4`, `ipv6`, or `auto`). The example uses ports
