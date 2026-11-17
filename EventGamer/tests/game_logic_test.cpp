@@ -48,6 +48,7 @@ void require(bool condition, const char *message) {
 class FakeClient final : public Client {
   public:
     void playAudio(AudioKey audio) override { played.push_back(audio); }
+    void playAudioLoop(AudioKey audio) override { looped.push_back(audio); }
     void hangUp() override {
         ++hangups;
         if (auto *current = logic) {
@@ -58,6 +59,7 @@ class FakeClient final : public Client {
 
     Logic *logic = nullptr;
     std::vector<AudioKey> played;
+    std::vector<AudioKey> looped;
     unsigned int hangups = 0;
 };
 
@@ -159,8 +161,11 @@ int main() {
                     "Game start announcement not played");
             game.keyPressed('2');
             mapper.expectNothing();
+            require(player.looped.empty(), "Music started during the announcement");
 
             game.audioFinished(AudioKey::game_starts);
+            require(player.looped == std::vector<AudioKey>{AudioKey::game_music},
+                    "Music not started after the announcement");
             game.keyPressed('5');
             mapper.expectNothing();
             game.keyPressed('2');
@@ -196,6 +201,8 @@ int main() {
             require(player.played ==
                         std::vector<AudioKey>{AudioKey::game_starts, AudioKey::game_over},
                     "Game over announcement must play exactly once");
+            require(player.looped == std::vector<AudioKey>{AudioKey::game_music},
+                    "Music must not restart after game over");
             game.keyPressed('6');
             mapper.expectNothing();
             require(player.hangups == 0, "Hung up before the announcement finished");
@@ -218,6 +225,7 @@ int main() {
             FakeClient next;
             attach(game, next);
             mapper.sendGameOver(protocol);
+            require(next.looped.empty(), "Stale game over started the music");
             game.audioFinished(AudioKey::game_starts);
             mapper.sendGameOver(protocol);
             require(next.played == std::vector<AudioKey>{AudioKey::game_starts},

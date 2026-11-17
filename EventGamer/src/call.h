@@ -40,6 +40,7 @@ class ActiveCall final : public pj::Call, public Client {
     void setLogic(std::shared_ptr<Logic> new_logic);
     void setQueuePosition(unsigned int position);
     void playAudio(AudioKey audio) override;
+    void playAudioLoop(AudioKey audio) override;
     void hangUp() override;
     void processAudioEvents();
     bool finished() const { return disconnected_; }
@@ -50,13 +51,20 @@ class ActiveCall final : public pj::Call, public Client {
   private:
     class SoundPlayer final : public pj::AudioMediaPlayer {
       public:
-        explicit SoundPlayer(AudioKey key) : audio(key) {}
-        void onEof2() override { completed.store(true); }
+        SoundPlayer(AudioKey key, bool repeat) : audio(key), loop(repeat) {}
+        // A looping player reaches EOF on every repetition and never completes.
+        void onEof2() override {
+            if (!loop)
+                completed.store(true);
+        }
 
         const AudioKey audio;
+        const bool loop;
         std::atomic<bool> completed{false};
         bool notified = false; // Accessed only by the main thread.
     };
+
+    void startPlayer(AudioKey audio, bool loop);
 
     AudioConfig audio_config_;
     std::unique_ptr<SoundPlayer> player_;

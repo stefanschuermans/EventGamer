@@ -112,6 +112,8 @@ void GameLogic::audioFinished(AudioKey audio) {
     if (state_ == State::intro && audio == AudioKey::game_starts) {
         std::cout << "game ready, waiting for first direction" << std::endl;
         state_ = State::ready;
+        // Loops until the game-over announcement replaces it or the call ends.
+        playAudioLoop(AudioKey::game_music);
     } else if (state_ == State::over && audio == AudioKey::game_over) {
         hangUp();
     }

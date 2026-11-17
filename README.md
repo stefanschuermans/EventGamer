@@ -27,6 +27,10 @@ Start with [EventGamer/example_configs/simple.toml](EventGamer/example_configs/s
   9001 for MadMapper and 9000 for EventGamer.
 - `[audio]`: set `in_queue`, `game_starts`, and `game_over` to the announcement
   WAV files (16-bit PCM mono). Relative paths resolve from the config directory.
+  Optionally set `game_music` to background music; it repeats from the end of the
+  game-start announcement until the game-over announcement or the end of the call.
+  Phone calls cut bass and treble, so pick music with a clear melody, mix it quieter
+  than the announcements, and make its end run smoothly into its start.
 
 Configure the MadMapper Snake implementation to accept `/snake/up`,
 `/snake/left`, `/snake/right`, `/snake/down`, and `/snake/stop`, each carrying an

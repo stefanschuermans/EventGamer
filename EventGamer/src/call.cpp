@@ -29,13 +29,21 @@ namespace eventgamer {
 ActiveCall::ActiveCall(pj::Account &account, int call_id, const AudioConfig &audio)
     : pj::Call(account, call_id), audio_config_(audio) {}
 
-void ActiveCall::playAudio(AudioKey audio) {
+void ActiveCall::playAudio(AudioKey audio) { startPlayer(audio, false); }
+
+void ActiveCall::playAudioLoop(AudioKey audio) { startPlayer(audio, true); }
+
+void ActiveCall::startPlayer(AudioKey audio, bool loop) {
     if (disconnected_) {
         return;
     }
     try {
-        auto next = std::make_unique<SoundPlayer>(audio);
-        next->createPlayer(audio_config_.paths.at(audio).u8string(), PJMEDIA_FILE_NO_LOOP);
+        const auto path = audio_config_.paths.find(audio);
+        if (path == audio_config_.paths.end()) {
+            return; // optional sound that is not configured
+        }
+        auto next = std::make_unique<SoundPlayer>(audio, loop);
+        next->createPlayer(path->second.u8string(), loop ? 0 : PJMEDIA_FILE_NO_LOOP);
 
         const auto info = getInfo();
         for (const auto &media : info.media) {
